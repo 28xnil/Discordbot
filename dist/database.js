@@ -9,6 +9,7 @@ const defaultTicketConfig = { namingPattern: 'ticket-{username}', userLimit: 1, 
 const defaultAutoMod = { enabled: false, blockLinks: false, blockInvites: true, blockCaps: false, blockMentions: true, spamLimit: 5, blockedWords: [] };
 const defaultModules = { moderation: true, tickets: true, automod: false, logging: true, utility: true, community: false };
 const defaultLogTypes = { member_join: true, member_leave: true, member_ban: true, member_unban: true, ticket_create: true, ticket_close: true, automod: true };
+const defaultGeneral = { prefix: '!', language: 'English', timezone: 'UTC', warningsEnabled: true, nickname: 'Sentinel' };
 export async function initializeDatabase() {
     if (!config.databaseUrl)
         throw new Error('Missing DATABASE_URL. Add a PostgreSQL connection string before starting the bot.');
@@ -105,6 +106,12 @@ export async function getLogTypes(guildId) {
 }
 export async function updateLogTypes(guildId, logTypes) {
     await updateGuildSettings(guildId, { logTypes: { ...defaultLogTypes, ...logTypes } });
+}
+export async function getGeneralConfig(guildId) {
+    return { ...defaultGeneral, ...(await getGuildSettings(guildId)).general };
+}
+export async function updateGeneralConfig(guildId, changes) {
+    await updateGuildSettings(guildId, { general: { ...(await getGeneralConfig(guildId)), ...changes } });
 }
 export async function getTicketConfig(guildId) {
     return { ...defaultTicketConfig, ...(await getGuildSettings(guildId)).ticketConfig };

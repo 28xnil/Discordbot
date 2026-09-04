@@ -12,6 +12,7 @@ type GuildSettings = {
   logChannelId?: string;
   ticketConfig?: TicketConfig;
   autoMod?: AutoModConfig;
+  general?: { prefix: string; language: string; timezone: string; warningsEnabled: boolean; nickname: string };
   modules?: Record<string, boolean>;
   logTypes?: Record<string, boolean>;
 };
@@ -20,6 +21,7 @@ const defaultTicketConfig: TicketConfig = { namingPattern: 'ticket-{username}', 
 const defaultAutoMod: AutoModConfig = { enabled: false, blockLinks: false, blockInvites: true, blockCaps: false, blockMentions: true, spamLimit: 5, blockedWords: [] };
 const defaultModules = { moderation: true, tickets: true, automod: false, logging: true, utility: true, community: false };
 const defaultLogTypes = { member_join: true, member_leave: true, member_ban: true, member_unban: true, ticket_create: true, ticket_close: true, automod: true };
+const defaultGeneral = { prefix: '!', language: 'English', timezone: 'UTC', warningsEnabled: true, nickname: 'Sentinel' };
 
 export async function initializeDatabase(): Promise<void> {
   if (!config.databaseUrl) throw new Error('Missing DATABASE_URL. Add a PostgreSQL connection string before starting the bot.');
@@ -132,6 +134,14 @@ export async function getLogTypes(guildId: string): Promise<Record<string, boole
 
 export async function updateLogTypes(guildId: string, logTypes: Record<string, boolean>): Promise<void> {
   await updateGuildSettings(guildId, { logTypes: { ...defaultLogTypes, ...logTypes } });
+}
+
+export async function getGeneralConfig(guildId: string): Promise<typeof defaultGeneral> {
+  return { ...defaultGeneral, ...(await getGuildSettings(guildId)).general };
+}
+
+export async function updateGeneralConfig(guildId: string, changes: Partial<typeof defaultGeneral>): Promise<void> {
+  await updateGuildSettings(guildId, { general: { ...(await getGeneralConfig(guildId)), ...changes } });
 }
 
 export async function getTicketConfig(guildId: string): Promise<TicketConfig> {

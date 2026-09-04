@@ -1,6 +1,6 @@
 # Sentinel Discord Bot
 
-Current version: `0.6.0`. Check the deployed version at `/version`.
+Current version: `0.7.0`. Check the deployed version at `/version`.
 
 Sentinel is a modular Discord bot for moderation, support tickets, server management, logging, and everyday utilities.
 
