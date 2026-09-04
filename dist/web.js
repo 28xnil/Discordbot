@@ -84,6 +84,10 @@ export function startWebServer(client) {
                 response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
                 return response.end('<h1>Wow, you entered a secret thing.</h1>');
             }
+            if (url.pathname === '/version') {
+                response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+                return response.end(JSON.stringify({ name: 'Sentinel', version: config.version }));
+            }
             const session = readSession(request);
             if (url.pathname === '/api/me')
                 return sendJson(response, session ? { authenticated: true, username: session.username } : { authenticated: false });

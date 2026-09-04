@@ -6,6 +6,7 @@ function required(name) {
     return value;
 }
 export const config = {
+    version: '0.2.0',
     token: required('DISCORD_TOKEN'),
     clientId: required('DISCORD_CLIENT_ID'),
     guildId: process.env.DISCORD_GUILD_ID,
