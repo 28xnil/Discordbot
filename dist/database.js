@@ -7,6 +7,8 @@ export const pool = new Pool({
 });
 const defaultTicketConfig = { namingPattern: 'ticket-{username}', userLimit: 1, topics: ['🎮|Ingame', '💬|Discord', '🐛|Bug Reports', '❓|General Support'] };
 const defaultAutoMod = { enabled: false, blockLinks: false, blockInvites: true, blockCaps: false, blockMentions: true, spamLimit: 5, blockedWords: [] };
+const defaultModules = { moderation: true, tickets: true, automod: false, logging: true, utility: true, community: false };
+const defaultLogTypes = { member_join: true, member_leave: true, member_ban: true, member_unban: true, ticket_create: true, ticket_close: true, automod: true };
 export async function initializeDatabase() {
     if (!config.databaseUrl)
         throw new Error('Missing DATABASE_URL. Add a PostgreSQL connection string before starting the bot.');
@@ -91,6 +93,18 @@ export async function getLogChannel(guildId) {
 }
 export async function setLogChannel(guildId, channelId) {
     await updateGuildSettings(guildId, { logChannelId: channelId });
+}
+export async function getModules(guildId) {
+    return { ...defaultModules, ...(await getGuildSettings(guildId)).modules };
+}
+export async function updateModules(guildId, modules) {
+    await updateGuildSettings(guildId, { modules: { ...defaultModules, ...modules } });
+}
+export async function getLogTypes(guildId) {
+    return { ...defaultLogTypes, ...(await getGuildSettings(guildId)).logTypes };
+}
+export async function updateLogTypes(guildId, logTypes) {
+    await updateGuildSettings(guildId, { logTypes: { ...defaultLogTypes, ...logTypes } });
 }
 export async function getTicketConfig(guildId) {
     return { ...defaultTicketConfig, ...(await getGuildSettings(guildId)).ticketConfig };

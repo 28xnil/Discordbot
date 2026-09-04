@@ -12,10 +12,14 @@ type GuildSettings = {
   logChannelId?: string;
   ticketConfig?: TicketConfig;
   autoMod?: AutoModConfig;
+  modules?: Record<string, boolean>;
+  logTypes?: Record<string, boolean>;
 };
 
 const defaultTicketConfig: TicketConfig = { namingPattern: 'ticket-{username}', userLimit: 1, topics: ['🎮|Ingame', '💬|Discord', '🐛|Bug Reports', '❓|General Support'] };
 const defaultAutoMod: AutoModConfig = { enabled: false, blockLinks: false, blockInvites: true, blockCaps: false, blockMentions: true, spamLimit: 5, blockedWords: [] };
+const defaultModules = { moderation: true, tickets: true, automod: false, logging: true, utility: true, community: false };
+const defaultLogTypes = { member_join: true, member_leave: true, member_ban: true, member_unban: true, ticket_create: true, ticket_close: true, automod: true };
 
 export async function initializeDatabase(): Promise<void> {
   if (!config.databaseUrl) throw new Error('Missing DATABASE_URL. Add a PostgreSQL connection string before starting the bot.');
@@ -112,6 +116,22 @@ export async function getLogChannel(guildId: string): Promise<string | undefined
 
 export async function setLogChannel(guildId: string, channelId: string): Promise<void> {
   await updateGuildSettings(guildId, { logChannelId: channelId });
+}
+
+export async function getModules(guildId: string): Promise<Record<string, boolean>> {
+  return { ...defaultModules, ...(await getGuildSettings(guildId)).modules };
+}
+
+export async function updateModules(guildId: string, modules: Record<string, boolean>): Promise<void> {
+  await updateGuildSettings(guildId, { modules: { ...defaultModules, ...modules } });
+}
+
+export async function getLogTypes(guildId: string): Promise<Record<string, boolean>> {
+  return { ...defaultLogTypes, ...(await getGuildSettings(guildId)).logTypes };
+}
+
+export async function updateLogTypes(guildId: string, logTypes: Record<string, boolean>): Promise<void> {
+  await updateGuildSettings(guildId, { logTypes: { ...defaultLogTypes, ...logTypes } });
 }
 
 export async function getTicketConfig(guildId: string): Promise<TicketConfig> {
