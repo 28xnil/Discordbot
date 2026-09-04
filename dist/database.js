@@ -2,13 +2,14 @@ import pg from 'pg';
 import { config } from './config.js';
 const { Pool } = pg;
 export const pool = new Pool({
-    connectionString: config.databaseUrl,
-    ssl: config.databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },
+    ...(config.databaseUrl ? { connectionString: config.databaseUrl, ssl: config.databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false } } : {}),
     max: 5
 });
 const defaultTicketConfig = { namingPattern: 'ticket-{username}', userLimit: 1, topics: ['🎮|Ingame', '💬|Discord', '🐛|Bug Reports', '❓|General Support'] };
 const defaultAutoMod = { enabled: false, blockLinks: false, blockInvites: true, blockCaps: false, blockMentions: true, spamLimit: 5, blockedWords: [] };
 export async function initializeDatabase() {
+    if (!config.databaseUrl)
+        throw new Error('Missing DATABASE_URL. Add a PostgreSQL connection string before starting the bot.');
     await pool.query(`
     CREATE TABLE IF NOT EXISTS guild_settings (
       guild_id TEXT PRIMARY KEY,

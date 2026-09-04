@@ -8,7 +8,7 @@ const sections = {
   'help:moderation': { title: 'Moderation', description: 'Staff tools for keeping your server safe and accountable.', commands: '`/warn`, `/warnings`, `/clearwarnings`, `/unwarn`, `/timeout`, `/untimeout`, `/kick`, `/ban`, `/unban`, `/cases`, `/case`, `/automod`' },
   'help:tickets': { title: 'Tickets', description: 'Private support channels with staff assignment and topic selection.', commands: '`/ticket panel`, `/ticket create`, `/ticket config`, `/ticket close`, `/ticket reopen`, `/ticket delete`, `/ticket rename`, `/ticket claim`, `/ticket unclaim`, `/ticket list`' },
   'help:management': { title: 'Management', description: 'Server configuration, logging, roles, welcome messages, and permission controls.', commands: 'Coming next: `/config`, `/logs`, `/welcome`, `/goodbye`, `/role`, and automated roles.' },
-  'help:utility': { title: 'Utility', description: 'Useful information and everyday server tools.', commands: '`/ping`, `/help`\nComing next: server info, user info, avatars, polls, reminders, and statistics.' }
+  'help:utility': { title: 'Utility', description: 'Useful information and everyday server tools.', commands: '`/ping`, `/help`, `/botinfo`, `/serverinfo`, `/userinfo`, `/avatar`, `/banner`, `/roleinfo`, `/channelinfo`, `/permissions`, `/membercount`, `/choose`, `/roll`, `/poll`, `/remind`' }
 } as const;
 
 export function helpSectionEmbed(id: string) {

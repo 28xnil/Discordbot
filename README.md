@@ -32,6 +32,13 @@ Discord custom emoji markup is supported too, for example `<a:robuxcoin:15454568
 - `/logs status` displays the current log channel
 - Join, leave, ban, and unban events are sent as embeds
 
+## Phase 5: utility commands
+
+- `/botinfo`, `/serverinfo`, `/userinfo`, `/avatar`, and `/banner`
+- `/roleinfo`, `/channelinfo`, `/permissions`, and `/membercount`
+- `/choose`, `/roll`, `/poll`, and `/remind`
+- `/8ball` is intentionally not included
+
 ## Phase 3: configuration and AutoMod
 
 - `/ticket config` for category, staff role, log channel, naming pattern, and per-user ticket limits
@@ -66,7 +73,7 @@ If your PostgreSQL service has a different name, replace `Postgres` with that se
 
 4. Deploy. The bot runs `npm run build`, creates its tables on startup, and starts with `npm start`.
 
-Run `npm run sync` locally with the production bot credentials when slash commands change. Do not use `npm run dev` as the Railway start command.
+`npm start` automatically synchronizes slash commands before starting the bot. `npm run sync` remains available for manual command registration. Do not use `npm run dev` as the Railway start command.
 
 ## Planned phases
 

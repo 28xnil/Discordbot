@@ -4,8 +4,7 @@ import type { AutoModConfig, ModerationCase, ModerationCaseType, Ticket, TicketC
 
 const { Pool } = pg;
 export const pool = new Pool({
-  connectionString: config.databaseUrl,
-  ssl: config.databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },
+  ...(config.databaseUrl ? { connectionString: config.databaseUrl, ssl: config.databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false } } : {}),
   max: 5
 });
 
@@ -19,6 +18,7 @@ const defaultTicketConfig: TicketConfig = { namingPattern: 'ticket-{username}', 
 const defaultAutoMod: AutoModConfig = { enabled: false, blockLinks: false, blockInvites: true, blockCaps: false, blockMentions: true, spamLimit: 5, blockedWords: [] };
 
 export async function initializeDatabase(): Promise<void> {
+  if (!config.databaseUrl) throw new Error('Missing DATABASE_URL. Add a PostgreSQL connection string before starting the bot.');
   await pool.query(`
     CREATE TABLE IF NOT EXISTS guild_settings (
       guild_id TEXT PRIMARY KEY,
