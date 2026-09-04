@@ -6,12 +6,15 @@ import { commands } from './command-loader.js';
 import { deleteCustomCommand, getCustomCommands, getDashboardData, saveCustomCommand, getTicketConfig, getAutoModConfig, getLogChannel, setLogChannel, updateTicketConfig, updateAutoModConfig } from './database.js';
 import { syncCommands } from './sync-commands.js';
 const pendingStates = new Set();
+function tabIcon(path) {
+    return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${path}"/></svg>`;
+}
 const navigation = [
-    ['overview', 'Dashboard', '◉'],
-    ['modules', 'Modules', '◈'],
-    ['commands', 'Commands', '📜'],
-    ['logs', 'Logs', '▤'],
-    ['developer', 'Developer', '🔧']
+    ['overview', 'Dashboard', tabIcon('M3 13h8V3H3v10Zm0 8h8v-6H3v6Zm10 0h8V11h-8v10Zm0-18v6h8V3h-8Z')],
+    ['modules', 'Modules', tabIcon('M12 3 4 7v5c0 5 3.4 8.7 8 9 4.6-.3 8-4 8-9V7l-8-4Zm0 4 4 2v3c0 3.2-1.8 5.5-4 6.2-2.2-.7-4-3-4-6V9l4-2Z')],
+    ['commands', 'Commands', tabIcon('M8 5 3 12l5 7m8-14 5 7-5 7M14 3l-4 18')],
+    ['logs', 'Logs', tabIcon('M4 4h16v16H4V4Zm3 4h10M7 12h10M7 16h6')],
+    ['developer', 'Developer', tabIcon('M12 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm7 8-2-1-1 2a7 7 0 0 0-2-1V9h-4v2a7 7 0 0 0-2 1L7 10l-2 1 1 2a7 7 0 0 0-1 2H3v4h2a7 7 0 0 0 1 2l-1 2 2 1 1-2a7 7 0 0 0 2 1v2h4v-2a7 7 0 0 0 2-1l1 2 2-1-1-2a7 7 0 0 0 1-2h2v-4h-2a7 7 0 0 0-1-2l1-2Z')]
 ];
 const commandCatalog = commands.map((command) => {
     const data = command.data.toJSON();
