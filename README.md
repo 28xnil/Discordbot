@@ -85,6 +85,7 @@ DASHBOARD_URL=https://gallant-victory-production.up.railway.app
 If your PostgreSQL service has a different name, replace `Postgres` with that service name. You can also paste the full PostgreSQL connection URL directly as `DATABASE_URL`.
 
 After deployment, the dashboard will be available at `https://gallant-victory-production.up.railway.app/` when that domain is attached to this service. The dashboard API is available at `/api/status`.
+The deployment test page is available at `https://gallant-victory-production.up.railway.app/test`.
 
 In the Discord Developer Portal, add this OAuth2 redirect URI to the bot application:
 

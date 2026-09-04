@@ -14,5 +14,6 @@ export const config = {
     ownerId: '1019208986165248020',
     oauthClientSecret: process.env.DISCORD_OAUTH_CLIENT_SECRET,
     sessionSecret: process.env.DASHBOARD_SESSION_SECRET ?? 'change-this-dashboard-secret',
-    dashboardUrl: process.env.DASHBOARD_URL ?? `http://localhost:${process.env.PORT ?? 9090}`
+    dashboardUrl: process.env.DASHBOARD_URL
+        ?? (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `http://localhost:${process.env.PORT ?? 9090}`)
 };

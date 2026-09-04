@@ -90,6 +90,11 @@ export function startWebServer(client: Client): void {
         redirect(response, '/', { 'set-cookie': 'sentinel_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0' });
         return;
       }
+      if (url.pathname === '/test') {
+        response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+        response.end('<!doctype html><html><head><title>Sentinel test</title></head><body><h1>Wow, you entered a secret thing.</h1><p>The Sentinel website is responding.</p></body></html>');
+        return;
+      }
       const session = readSession(request);
       if (url.pathname === '/api/me') return sendJson(response, session ? { authenticated: true, username: session.username } : { authenticated: false });
       if (url.pathname.startsWith('/api/')) {
