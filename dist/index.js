@@ -6,6 +6,7 @@ import { helpButtonIds, helpSectionEmbed } from './commands/utility/help.js';
 import { handleTicketButton } from './commands/tickets/index.js';
 import { handleAutoModMessage } from './automod.js';
 import { registerLogging } from './logging.js';
+import { startWebServer } from './web.js';
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 const startedAt = Date.now();
 registerLogging(client);
@@ -49,3 +50,4 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 await initializeDatabase();
 await client.login(config.token);
+startWebServer(client);

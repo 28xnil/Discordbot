@@ -9,5 +9,6 @@ export const config = {
     token: required('DISCORD_TOKEN'),
     clientId: required('DISCORD_CLIENT_ID'),
     guildId: process.env.DISCORD_GUILD_ID,
-    databaseUrl: process.env.DATABASE_URL
+    databaseUrl: process.env.DATABASE_URL,
+    port: Number(process.env.PORT ?? 9090)
 };

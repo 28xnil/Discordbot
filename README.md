@@ -39,6 +39,13 @@ Discord custom emoji markup is supported too, for example `<a:robuxcoin:15454568
 - `/choose`, `/roll`, `/poll`, and `/remind`
 - `/8ball` is intentionally not included
 
+## Management and website
+
+- `/config view` and `/config reset`
+- `/role create`, `/role delete`, `/role add`, and `/role remove`
+- Hosted dashboard at `/`, with live status at `/api/status`
+- Local dashboard port defaults to `9090`; Railway uses its injected `PORT` when configured
+
 ## Phase 3: configuration and AutoMod
 
 - `/ticket config` for category, staff role, log channel, naming pattern, and per-user ticket limits
@@ -67,9 +74,12 @@ DISCORD_TOKEN=your_rotated_bot_token
 DISCORD_CLIENT_ID=your_application_client_id
 DISCORD_GUILD_ID=your_development_guild_id
 DATABASE_URL=${{Postgres.DATABASE_URL}}
+PORT=9090
 ```
 
 If your PostgreSQL service has a different name, replace `Postgres` with that service name. You can also paste the full PostgreSQL connection URL directly as `DATABASE_URL`.
+
+After deployment, the dashboard will be available at `https://gallant-victory-production.up.railway.app/` when that domain is attached to this service. The dashboard API is available at `/api/status`.
 
 4. Deploy. The bot runs `npm run build`, creates its tables on startup, and starts with `npm start`.
 

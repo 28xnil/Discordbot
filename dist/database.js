@@ -102,6 +102,9 @@ export async function updateAutoModConfig(guildId, changes) {
     await updateGuildSettings(guildId, { autoMod: next });
     return next;
 }
+export async function resetGuildSettings(guildId) {
+    await pool.query('UPDATE guild_settings SET settings = $2::jsonb, updated_at = NOW() WHERE guild_id = $1', [guildId, JSON.stringify({})]);
+}
 export async function createTicket(input) {
     const result = await pool.query('INSERT INTO tickets (guild_id, channel_id, user_id, topic, claimed_by) VALUES ($1, $2, $3, $4, $5) RETURNING *', [input.guildId, input.channelId, input.userId, input.topic ?? null, input.claimedBy ?? null]);
     return ticketFromRow(result.rows[0]);
@@ -117,6 +120,13 @@ export async function getOpenTicketForUser(guildId, userId) {
 export async function getGuildTickets(guildId, status) {
     const result = await pool.query(status ? 'SELECT * FROM tickets WHERE guild_id = $1 AND status = $2 ORDER BY id DESC' : 'SELECT * FROM tickets WHERE guild_id = $1 ORDER BY id DESC', status ? [guildId, status] : [guildId]);
     return result.rows.map(ticketFromRow);
+}
+export async function getDashboardData() {
+    const result = await pool.query(`SELECT
+    (SELECT COUNT(*)::int FROM tickets WHERE status = 'OPEN') AS open_tickets,
+    (SELECT COUNT(*)::int FROM tickets) AS total_tickets
+  `);
+    return { commands: 0, openTickets: result.rows[0].open_tickets, totalTickets: result.rows[0].total_tickets };
 }
 export async function updateTicket(id, changes) {
     const result = await pool.query('UPDATE tickets SET channel_id = COALESCE($2, channel_id), claimed_by = $3, status = COALESCE($4, status), closed_at = $5 WHERE id = $1 RETURNING *', [id, changes.channelId ?? null, changes.claimedBy ?? null, changes.status ?? null, changes.closedAt ?? null]);
