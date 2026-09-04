@@ -1,6 +1,6 @@
 import pg from 'pg';
 import { config } from './config.js';
-import type { AutoModConfig, ModerationCase, ModerationCaseType, Ticket, TicketConfig } from './types.js';
+import type { AutoModConfig, CustomCommand, ModerationCase, ModerationCaseType, Ticket, TicketConfig } from './types.js';
 
 const { Pool } = pg;
 export const pool = new Pool({
@@ -48,6 +48,13 @@ export async function initializeDatabase(): Promise<void> {
       closed_at TIMESTAMPTZ
     );
     CREATE INDEX IF NOT EXISTS tickets_guild_status_idx ON tickets(guild_id, status);
+    CREATE TABLE IF NOT EXISTS custom_commands (
+      name TEXT PRIMARY KEY,
+      description TEXT NOT NULL,
+      response TEXT NOT NULL,
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 }
 
@@ -158,6 +165,24 @@ export async function getDashboardData(): Promise<{ commands: number; openTicket
     (SELECT COUNT(*)::int FROM tickets) AS total_tickets
   `);
   return { commands: 0, openTickets: result.rows[0].open_tickets, totalTickets: result.rows[0].total_tickets };
+}
+
+export async function getCustomCommands(): Promise<CustomCommand[]> {
+  const result = await pool.query('SELECT name, description, response, enabled FROM custom_commands ORDER BY name');
+  return result.rows as CustomCommand[];
+}
+
+export async function getCustomCommand(name: string): Promise<CustomCommand | undefined> {
+  const result = await pool.query('SELECT name, description, response, enabled FROM custom_commands WHERE name = $1', [name]);
+  return result.rows[0] as CustomCommand | undefined;
+}
+
+export async function saveCustomCommand(command: CustomCommand): Promise<void> {
+  await pool.query('INSERT INTO custom_commands (name, description, response, enabled) VALUES ($1, $2, $3, $4) ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description, response = EXCLUDED.response, enabled = EXCLUDED.enabled, updated_at = NOW()', [command.name, command.description, command.response, command.enabled]);
+}
+
+export async function deleteCustomCommand(name: string): Promise<void> {
+  await pool.query('DELETE FROM custom_commands WHERE name = $1', [name]);
 }
 
 export async function updateTicket(id: number, changes: Partial<Pick<Ticket, 'channelId' | 'claimedBy' | 'status' | 'closedAt'>>): Promise<Ticket | undefined> {

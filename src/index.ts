@@ -7,6 +7,7 @@ import { handleTicketButton } from './commands/tickets/index.js';
 import { handleAutoModMessage } from './automod.js';
 import { registerLogging } from './logging.js';
 import { startWebServer } from './web.js';
+import { getCustomCommand } from './database.js';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 const startedAt = Date.now();
@@ -35,6 +36,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
     const command = commandMap.get(interaction.commandName);
     if (command) await command.execute(interaction);
+    else {
+      const customCommand = await getCustomCommand(interaction.commandName);
+      if (customCommand?.enabled) await interaction.reply({ content: customCommand.response });
+    }
   } catch (error) {
     console.error('Interaction failed', error);
     if (!interaction.isRepliable()) return;

@@ -52,3 +52,10 @@ export type AutoModConfig = {
 };
 
 export type LogType = 'member_join' | 'member_leave' | 'member_ban' | 'member_unban' | 'ticket_create' | 'ticket_close' | 'automod';
+
+export type CustomCommand = {
+  name: string;
+  description: string;
+  response: string;
+  enabled: boolean;
+};

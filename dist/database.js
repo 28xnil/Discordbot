@@ -39,6 +39,13 @@ export async function initializeDatabase() {
       closed_at TIMESTAMPTZ
     );
     CREATE INDEX IF NOT EXISTS tickets_guild_status_idx ON tickets(guild_id, status);
+    CREATE TABLE IF NOT EXISTS custom_commands (
+      name TEXT PRIMARY KEY,
+      description TEXT NOT NULL,
+      response TEXT NOT NULL,
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 }
 function caseFromRow(row) {
@@ -127,6 +134,20 @@ export async function getDashboardData() {
     (SELECT COUNT(*)::int FROM tickets) AS total_tickets
   `);
     return { commands: 0, openTickets: result.rows[0].open_tickets, totalTickets: result.rows[0].total_tickets };
+}
+export async function getCustomCommands() {
+    const result = await pool.query('SELECT name, description, response, enabled FROM custom_commands ORDER BY name');
+    return result.rows;
+}
+export async function getCustomCommand(name) {
+    const result = await pool.query('SELECT name, description, response, enabled FROM custom_commands WHERE name = $1', [name]);
+    return result.rows[0];
+}
+export async function saveCustomCommand(command) {
+    await pool.query('INSERT INTO custom_commands (name, description, response, enabled) VALUES ($1, $2, $3, $4) ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description, response = EXCLUDED.response, enabled = EXCLUDED.enabled, updated_at = NOW()', [command.name, command.description, command.response, command.enabled]);
+}
+export async function deleteCustomCommand(name) {
+    await pool.query('DELETE FROM custom_commands WHERE name = $1', [name]);
 }
 export async function updateTicket(id, changes) {
     const result = await pool.query('UPDATE tickets SET channel_id = COALESCE($2, channel_id), claimed_by = $3, status = COALESCE($4, status), closed_at = $5 WHERE id = $1 RETURNING *', [id, changes.channelId ?? null, changes.claimedBy ?? null, changes.status ?? null, changes.closedAt ?? null]);

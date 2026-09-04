@@ -45,6 +45,8 @@ Discord custom emoji markup is supported too, for example `<a:robuxcoin:15454568
 - `/role create`, `/role delete`, `/role add`, and `/role remove`
 - Hosted dashboard at `/`, with live status at `/api/status`
 - Local dashboard port defaults to `9090`; Railway uses its injected `PORT` when configured
+- Discord OAuth2 owner login and protected developer controls
+- Add, update, delete, and immediately sync custom slash commands from the panel
 
 ## Phase 3: configuration and AutoMod
 
@@ -75,11 +77,22 @@ DISCORD_CLIENT_ID=your_application_client_id
 DISCORD_GUILD_ID=your_development_guild_id
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 PORT=9090
+DISCORD_OAUTH_CLIENT_SECRET=your_discord_oauth_client_secret
+DASHBOARD_SESSION_SECRET=use-a-long-random-secret
+DASHBOARD_URL=https://gallant-victory-production.up.railway.app
 ```
 
 If your PostgreSQL service has a different name, replace `Postgres` with that service name. You can also paste the full PostgreSQL connection URL directly as `DATABASE_URL`.
 
 After deployment, the dashboard will be available at `https://gallant-victory-production.up.railway.app/` when that domain is attached to this service. The dashboard API is available at `/api/status`.
+
+In the Discord Developer Portal, add this OAuth2 redirect URI to the bot application:
+
+```text
+https://gallant-victory-production.up.railway.app/auth/callback
+```
+
+The dashboard only accepts Discord user ID `1019208986165248020`. Custom commands created there are stored in PostgreSQL and synced to Discord immediately. Built-in command behavior remains source-controlled; the panel does not execute arbitrary code.
 
 4. Deploy. The bot runs `npm run build`, creates its tables on startup, and starts with `npm start`.
 
