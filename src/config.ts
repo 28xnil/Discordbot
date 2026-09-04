@@ -7,7 +7,7 @@ function required(name: string): string {
 }
 
 export const config = {
-  version: '0.3.0',
+  version: '0.4.0',
   token: required('DISCORD_TOKEN'),
   clientId: required('DISCORD_CLIENT_ID'),
   guildId: process.env.DISCORD_GUILD_ID,
