@@ -14,7 +14,7 @@ function hasExcessiveCaps(content: string): boolean {
   return letters.length >= 12 && uppercase.length / letters.length >= 0.75;
 }
 
-function violation(content: string, settings: ReturnType<typeof getAutoModConfig>): string | undefined {
+function violation(content: string, settings: Awaited<ReturnType<typeof getAutoModConfig>>): string | undefined {
   const lower = content.toLowerCase();
   if (settings.blockInvites && /(discord\.gg|discord(?:app)?\.com\/invite)\//i.test(content)) return 'Discord invite links are not allowed.';
   if (settings.blockLinks && /https?:\/\//i.test(content)) return 'Links are not allowed here.';
@@ -26,7 +26,7 @@ function violation(content: string, settings: ReturnType<typeof getAutoModConfig
 
 export async function handleAutoModMessage(message: Message): Promise<void> {
   if (!message.guild || message.author.bot || isStaff(message)) return;
-  const settings = getAutoModConfig(message.guild.id);
+  const settings = await getAutoModConfig(message.guild.id);
   if (!settings.enabled) return;
 
   const key = `${message.guild.id}:${message.author.id}`;
@@ -42,7 +42,7 @@ export async function handleAutoModMessage(message: Message): Promise<void> {
     await message.member?.timeout(60_000, 'AutoMod anti-spam').catch(() => undefined);
     recentMessages.delete(key);
   }
-  const logChannelId = getLogChannel(message.guild.id);
+  const logChannelId = await getLogChannel(message.guild.id);
   const logChannel = logChannelId ? message.guild.channels.cache.get(logChannelId) : undefined;
   if (logChannel?.isTextBased()) await logChannel.send({ embeds: [createEmbed('AutoMod action', `${message.author} message removed.\nReason: ${reason}`, colors.warning)] }).catch(() => undefined);
 }

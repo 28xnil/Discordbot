@@ -7,7 +7,7 @@ import {
 import { addCase, getCase, getUserCases, removeCase, totalWarningPoints } from '../../database.js';
 import { requireStaff } from '../../permissions.js';
 import { createEmbed, colors, errorEmbed } from '../../embeds.js';
-import type { Command } from '../../types.js';
+import type { Command, ModerationCase } from '../../types.js';
 
 function memberOption(command: SlashCommandBuilder, name: string, description: string) {
   return command.addUserOption((option) => option.setName(name).setDescription(description).setRequired(true));
@@ -21,7 +21,7 @@ function getReason(interaction: Parameters<Command['execute']>[0]): string {
   return interaction.options.getString('reason') ?? 'No reason provided';
 }
 
-function formatCase(caseItem: ReturnType<typeof getCase>): string {
+function formatCase(caseItem: ModerationCase | undefined): string {
   if (!caseItem) return 'Case not found.';
   return `Case #${caseItem.id} | ${caseItem.type} | ${caseItem.reason} | ${caseItem.createdAt}`;
 }
@@ -35,8 +35,8 @@ const warn: Command = {
     if (!target) return interaction.reply({ embeds: [errorEmbed('That member is not in this server.')], ephemeral: true });
     const reason = getReason(interaction);
     const points = 1;
-    const caseItem = addCase({ guildId: interaction.guild.id, userId: target.id, moderatorId: interaction.user.id, type: 'WARN', reason, points });
-    const total = totalWarningPoints(interaction.guild.id, target.id);
+    const caseItem = await addCase({ guildId: interaction.guild.id, userId: target.id, moderatorId: interaction.user.id, type: 'WARN', reason, points });
+    const total = await totalWarningPoints(interaction.guild.id, target.id);
     await interaction.reply({ embeds: [createEmbed('Warning issued', `${target.user.tag} received a warning.\nCase: **#${caseItem.id}**\nWarning points: **${total}**`, colors.warning)] });
     if (total >= 7) await target.ban({ reason: `Automatic escalation: ${total} warning points` });
     else if (total >= 5) await target.kick(`Automatic escalation: ${total} warning points`);
@@ -49,9 +49,9 @@ const warnings: Command = {
   async execute(interaction) {
     if (!(await requireStaff(interaction)) || !interaction.guild) return;
     const target = interaction.options.getUser('user', true);
-    const cases = getUserCases(interaction.guild.id, target.id).filter((item) => item.type === 'WARN');
+    const cases = (await getUserCases(interaction.guild.id, target.id)).filter((item) => item.type === 'WARN');
     if (!cases.length) return interaction.reply({ embeds: [createEmbed('Warnings', `${target.tag} has no warnings.`, colors.success)], ephemeral: true });
-    await interaction.reply({ embeds: [createEmbed(`Warnings for ${target.tag}`, `${cases.length} warning(s) | ${totalWarningPoints(interaction.guild.id, target.id)} point(s)\n\n${cases.slice(0, 10).map(formatCase).join('\n')}`)], ephemeral: true });
+    await interaction.reply({ embeds: [createEmbed(`Warnings for ${target.tag}`, `${cases.length} warning(s) | ${await totalWarningPoints(interaction.guild.id, target.id)} point(s)\n\n${cases.slice(0, 10).map(formatCase).join('\n')}`)], ephemeral: true });
   }
 };
 
@@ -60,8 +60,8 @@ const clearWarnings: Command = {
   async execute(interaction) {
     if (!(await requireStaff(interaction)) || !interaction.guild) return;
     const target = interaction.options.getUser('user', true);
-    const cases = getUserCases(interaction.guild.id, target.id).filter((item) => item.type === 'WARN');
-    cases.forEach((item) => removeCase(item.id));
+    const cases = (await getUserCases(interaction.guild.id, target.id)).filter((item) => item.type === 'WARN');
+    await Promise.all(cases.map((item) => removeCase(item.id)));
     await interaction.reply({ embeds: [createEmbed('Warnings cleared', `Removed ${cases.length} warning(s) from ${target.tag}.`, colors.success)] });
   }
 };
@@ -72,10 +72,10 @@ const unwarn: Command = {
   async execute(interaction) {
     if (!(await requireStaff(interaction))) return;
     const id = interaction.options.getInteger('id', true);
-    const caseItem = getCase(id);
+    const caseItem = await getCase(id);
     if (!caseItem || caseItem.type !== 'WARN') return interaction.reply({ embeds: [errorEmbed('Warning case not found.')], ephemeral: true });
     if (caseItem.guildId !== interaction.guildId) return interaction.reply({ embeds: [errorEmbed('That case belongs to another server.')], ephemeral: true });
-    removeCase(id);
+    await removeCase(id);
     await interaction.reply({ embeds: [createEmbed('Warning removed', `Removed warning case **#${id}**.`, colors.success)] });
   }
 };
@@ -89,7 +89,7 @@ async function moderateMember(interaction: Parameters<Command['execute']>[0], ac
   if (action === 'TIMEOUT') await target.timeout(interaction.options.getInteger('duration', true) * 60 * 1000, reason);
   if (action === 'KICK') await target.kick(reason);
   if (action === 'BAN') await target.ban({ reason });
-  addCase({ guildId: interaction.guild.id, userId: target.id, moderatorId: interaction.user.id, type: action, reason, points: 0 });
+  await addCase({ guildId: interaction.guild.id, userId: target.id, moderatorId: interaction.user.id, type: action, reason, points: 0 });
   await interaction.reply({ embeds: [createEmbed(`${action} applied`, `${action.toLowerCase()} applied to ${target.user.tag}.`, colors.success)] });
 }
 
@@ -132,7 +132,7 @@ const unban: Command = {
     const userId = interaction.options.getString('user_id', true);
     const reason = getReason(interaction);
     await interaction.guild.members.unban(userId, reason);
-    addCase({ guildId: interaction.guild.id, userId, moderatorId: interaction.user.id, type: 'UNBAN', reason, points: 0 });
+    await addCase({ guildId: interaction.guild.id, userId, moderatorId: interaction.user.id, type: 'UNBAN', reason, points: 0 });
     await interaction.reply(`Unbanned ${userId}.`);
   }
 };
@@ -142,7 +142,7 @@ const cases: Command = {
   async execute(interaction) {
     if (!(await requireStaff(interaction)) || !interaction.guild) return;
     const target = interaction.options.getUser('user', true);
-    const history = getUserCases(interaction.guild.id, target.id).slice(0, 15);
+    const history = (await getUserCases(interaction.guild.id, target.id)).slice(0, 15);
     await interaction.reply({ content: history.length ? history.map(formatCase).join('\n') : 'No moderation cases found.', ephemeral: true });
   }
 };
@@ -152,7 +152,7 @@ const caseCommand: Command = {
     .addIntegerOption((option) => option.setName('id').setDescription('Case ID.').setRequired(true)),
   async execute(interaction) {
     if (!(await requireStaff(interaction))) return;
-    const caseItem = getCase(interaction.options.getInteger('id', true));
+    const caseItem = await getCase(interaction.options.getInteger('id', true));
     if (!caseItem || caseItem.guildId !== interaction.guildId) return interaction.reply({ content: 'Case not found.', ephemeral: true });
     await interaction.reply({ content: formatCase(caseItem), ephemeral: true });
   }

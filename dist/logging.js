@@ -1,7 +1,7 @@
 import { getLogChannel } from './database.js';
 import { createEmbed, colors } from './embeds.js';
 export async function logGuildEvent(guild, title, description, color = colors.neutral) {
-    const channelId = getLogChannel(guild.id);
+    const channelId = await getLogChannel(guild.id);
     const channel = channelId ? guild.channels.cache.get(channelId) : undefined;
     if (channel?.isTextBased())
         await channel.send({ embeds: [createEmbed(title, description, color)] }).catch(() => undefined);

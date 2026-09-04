@@ -27,7 +27,7 @@ function violation(content, settings) {
 export async function handleAutoModMessage(message) {
     if (!message.guild || message.author.bot || isStaff(message))
         return;
-    const settings = getAutoModConfig(message.guild.id);
+    const settings = await getAutoModConfig(message.guild.id);
     if (!settings.enabled)
         return;
     const key = `${message.guild.id}:${message.author.id}`;
@@ -43,7 +43,7 @@ export async function handleAutoModMessage(message) {
         await message.member?.timeout(60_000, 'AutoMod anti-spam').catch(() => undefined);
         recentMessages.delete(key);
     }
-    const logChannelId = getLogChannel(message.guild.id);
+    const logChannelId = await getLogChannel(message.guild.id);
     const logChannel = logChannelId ? message.guild.channels.cache.get(logChannelId) : undefined;
     if (logChannel?.isTextBased())
         await logChannel.send({ embeds: [createEmbed('AutoMod action', `${message.author} message removed.\nReason: ${reason}`, colors.warning)] }).catch(() => undefined);

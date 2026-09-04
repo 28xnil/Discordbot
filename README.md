@@ -6,7 +6,7 @@ Sentinel is a modular Discord bot for moderation, support tickets, server manage
 
 This phase includes:
 
-- Durable JSON persistence for guild settings, warnings, and moderation cases
+- PostgreSQL persistence for guild settings, warnings, moderation cases, and tickets
 - Slash command registration with a development-guild option
 - `/ping`, `/help`, `/warn`, `/warnings`, `/clearwarnings`, `/unwarn`
 - `/timeout`, `/untimeout`, `/kick`, `/ban`, `/unban`
@@ -41,13 +41,23 @@ Discord custom emoji markup is supported too, for example `<a:robuxcoin:15454568
 
 ## Setup
 
-1. Install Node.js 20 or newer.
-2. Copy `.env.example` to `.env` and fill in the Discord token and client ID.
-3. Enable the `Guilds`, `GuildMembers`, and `MessageContent` intents in the Discord developer portal when later phases require them.
+1. Install Node.js 20 or newer and PostgreSQL.
+2. Copy `.env.example` to `.env` and fill in the Discord token, client ID, and `DATABASE_URL`.
+3. Enable the `Guilds`, `GuildMembers`, `GuildMessages`, and `Message Content` intents in the Discord developer portal.
 4. Run `npm install`.
 5. Run `npm run sync` to register commands, then `npm run dev`.
 
 Set `DISCORD_GUILD_ID` during development for fast command updates. Without it, commands are registered globally.
+
+## Railway deployment
+
+1. Create a Railway project and add a PostgreSQL service.
+2. Deploy this repository as a Railway service.
+3. Add `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, and optionally `DISCORD_GUILD_ID` as service variables.
+4. Reference the PostgreSQL service so Railway provides `DATABASE_URL` to the bot service.
+5. Deploy. The bot runs `npm run build`, creates its tables on startup, and starts with `npm start`.
+
+Run `npm run sync` locally with the production bot credentials when slash commands change. Do not use `npm run dev` as the Railway start command.
 
 ## Planned phases
 

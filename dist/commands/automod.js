@@ -19,28 +19,28 @@ export const automodCommand = {
             return;
         const subcommand = interaction.options.getSubcommand();
         if (subcommand === 'status') {
-            const settings = getAutoModConfig(interaction.guild.id);
+            const settings = await getAutoModConfig(interaction.guild.id);
             await interaction.reply({ embeds: [createEmbed('AutoMod status', `Enabled: **${settings.enabled ? 'yes' : 'no'}**\nLinks: **${settings.blockLinks ? 'yes' : 'no'}**\nInvites: **${settings.blockInvites ? 'yes' : 'no'}**\nExcessive caps: **${settings.blockCaps ? 'yes' : 'no'}**\nMention spam: **${settings.blockMentions ? 'yes' : 'no'}**\nSpam limit: **${settings.spamLimit} messages / 10 seconds**\nBlocked words: **${settings.blockedWords.length}**`)], ephemeral: true });
         }
         else if (subcommand === 'enable' || subcommand === 'disable') {
-            const settings = updateAutoModConfig(interaction.guild.id, { enabled: subcommand === 'enable' });
+            const settings = await updateAutoModConfig(interaction.guild.id, { enabled: subcommand === 'enable' });
             await interaction.reply({ embeds: [createEmbed('AutoMod updated', `Automatic moderation is now **${settings.enabled ? 'enabled' : 'disabled'}**.`, colors.success)], ephemeral: true });
         }
         else if (subcommand === 'set') {
             const rule = interaction.options.getString('rule', true);
             const enabled = interaction.options.getBoolean('enabled', true);
             const key = { links: 'blockLinks', invites: 'blockInvites', caps: 'blockCaps', mentions: 'blockMentions' }[rule];
-            updateAutoModConfig(interaction.guild.id, { [key]: enabled });
+            await updateAutoModConfig(interaction.guild.id, { [key]: enabled });
             await interaction.reply({ embeds: [createEmbed('AutoMod rule updated', `**${rule}** filtering is now **${enabled ? 'enabled' : 'disabled'}**.`, colors.success)], ephemeral: true });
         }
         else if (subcommand === 'words') {
             const list = interaction.options.getString('list', true).split(',').map((word) => word.trim().toLowerCase()).filter(Boolean).slice(0, 100);
-            updateAutoModConfig(interaction.guild.id, { blockedWords: list });
+            await updateAutoModConfig(interaction.guild.id, { blockedWords: list });
             await interaction.reply({ embeds: [createEmbed('Blocked words updated', list.length ? `Tracking **${list.length}** blocked word(s).` : 'The blocked-word list is empty.', colors.success)], ephemeral: true });
         }
         else if (subcommand === 'spam') {
             const limit = interaction.options.getInteger('limit', true);
-            updateAutoModConfig(interaction.guild.id, { spamLimit: limit });
+            await updateAutoModConfig(interaction.guild.id, { spamLimit: limit });
             await interaction.reply({ embeds: [createEmbed('Anti-spam updated', `Members may send **${limit} messages per 10 seconds** before automod intervenes.`, colors.success)], ephemeral: true });
         }
     }

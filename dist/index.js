@@ -1,7 +1,7 @@
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { commandMap } from './command-loader.js';
 import { config } from './config.js';
-import { ensureGuild } from './database.js';
+import { ensureGuild, initializeDatabase } from './database.js';
 import { helpButtonIds, helpSectionEmbed } from './commands/utility/help.js';
 import { handleTicketButton } from './commands/tickets/index.js';
 import { handleAutoModMessage } from './automod.js';
@@ -12,7 +12,7 @@ registerLogging(client);
 client.once(Events.ClientReady, (readyClient) => {
     console.log(`Sentinel online as ${readyClient.user.tag} after ${Date.now() - startedAt}ms`);
 });
-client.on(Events.GuildCreate, (guild) => ensureGuild(guild.id));
+client.on(Events.GuildCreate, (guild) => ensureGuild(guild.id).catch((error) => console.error('Guild setup failed', error)));
 client.on(Events.MessageCreate, (message) => handleAutoModMessage(message).catch((error) => console.error('AutoMod failed', error)));
 client.on(Events.InteractionCreate, async (interaction) => {
     try {
@@ -47,4 +47,5 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.reply(response);
     }
 });
+await initializeDatabase();
 await client.login(config.token);

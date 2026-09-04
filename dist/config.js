@@ -9,5 +9,5 @@ export const config = {
     token: required('DISCORD_TOKEN'),
     clientId: required('DISCORD_CLIENT_ID'),
     guildId: process.env.DISCORD_GUILD_ID,
-    databasePath: process.env.DATABASE_PATH ?? './data/sentinel.sqlite'
+    databaseUrl: required('DATABASE_URL')
 };

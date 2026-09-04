@@ -39,8 +39,8 @@ function topicValue(value: string): string {
   return parseTopic(value).name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 100);
 }
 
-function isTicketChannel(interaction: ChatInputCommandInteraction): boolean {
-  return Boolean(interaction.channel && getTicketByChannel(interaction.channel.id));
+async function isTicketChannel(interaction: ChatInputCommandInteraction): Promise<boolean> {
+  return Boolean(interaction.channel && await getTicketByChannel(interaction.channel.id));
 }
 
 function ticketPanel(topics: string[]) {
@@ -61,8 +61,8 @@ function ticketPanel(topics: string[]) {
 
 async function createTicketChannel(interaction: ChatInputCommandInteraction | ButtonInteraction | StringSelectMenuInteraction, topic?: string) {
   if (!interaction.guild) return;
-  const ticketConfig = getTicketConfig(interaction.guild.id);
-  const existingTickets = getGuildTickets(interaction.guild.id, 'OPEN').filter((ticket) => ticket.userId === interaction.user.id);
+  const ticketConfig = await getTicketConfig(interaction.guild.id);
+  const existingTickets = (await getGuildTickets(interaction.guild.id, 'OPEN')).filter((ticket) => ticket.userId === interaction.user.id);
   const existing = existingTickets[0];
   if (existingTickets.length >= ticketConfig.userLimit) {
     const existingChannel = interaction.guild.channels.cache.get(existing.channelId);
@@ -93,7 +93,7 @@ async function createTicketChannel(interaction: ChatInputCommandInteraction | Bu
       { id: interaction.guild.members.me!.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ReadMessageHistory] }
     ]
   });
-  const ticket = createTicket({ guildId: interaction.guild.id, channelId: channel.id, userId: interaction.user.id, topic });
+  const ticket = await createTicket({ guildId: interaction.guild.id, channelId: channel.id, userId: interaction.user.id, topic });
   const embed = createEmbed(`Ticket #${ticket.id}${topic ? ` | ${topic}` : ''}`, 'Thanks for reaching out. Describe your issue and a staff member will be with you shortly.')
     .addFields({ name: 'Actions', value: 'Use the buttons below to close or claim this ticket.' });
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -114,11 +114,11 @@ export async function handleTicketButton(interaction: ButtonInteraction | String
   if (!interaction.guild) return;
   if (interaction.customId === ticketPanelButtonId) return createTicketChannel(interaction);
   if (interaction.customId === 'ticket:topic' && interaction.isStringSelectMenu()) {
-    const config = getTicketConfig(interaction.guild.id);
+    const config = await getTicketConfig(interaction.guild.id);
     const selected = config.topics.find((topic) => topicValue(topic) === interaction.values[0]);
     return createTicketChannel(interaction, selected ? parseTopic(selected).name : interaction.values[0]);
   }
-  const ticket = getTicketByChannel(interaction.channelId);
+  const ticket = await getTicketByChannel(interaction.channelId);
   if (!ticket) {
     await interaction.reply({ content: 'This is not an active ticket channel.', ephemeral: true });
     return;
@@ -128,7 +128,7 @@ export async function handleTicketButton(interaction: ButtonInteraction | String
       await interaction.reply({ embeds: [errorEmbed('You need staff permissions to claim tickets.')], ephemeral: true });
       return;
     }
-    updateTicket(ticket.id, { claimedBy: interaction.user.id });
+    await updateTicket(ticket.id, { claimedBy: interaction.user.id });
     await interaction.reply({ embeds: [createEmbed('Ticket claimed', `${interaction.user} is now handling this ticket.`, colors.success)] });
   }
   if (interaction.customId === 'ticket:close') {
@@ -136,7 +136,7 @@ export async function handleTicketButton(interaction: ButtonInteraction | String
       await interaction.reply({ content: 'Only the ticket owner or staff can close this ticket.', ephemeral: true });
       return;
     }
-    updateTicket(ticket.id, { status: 'CLOSED', closedAt: new Date().toISOString() });
+    await updateTicket(ticket.id, { status: 'CLOSED', closedAt: new Date().toISOString() });
     await interaction.reply({ embeds: [createEmbed('Ticket closed', 'This channel will be deleted in 10 seconds.', colors.warning)] });
     setTimeout(() => interaction.channel?.delete('Ticket closed'), 10_000);
   }
@@ -171,48 +171,48 @@ const ticketCommand: Command = {
       const value = interaction.options.getString('value');
       if (setting === 'category') {
         if (!channel || channel.type !== DiscordChannelType.GuildCategory) return interaction.reply({ embeds: [errorEmbed('Choose a category channel.')], ephemeral: true });
-        updateTicketConfig(interaction.guild.id, { categoryId: channel.id });
+        await updateTicketConfig(interaction.guild.id, { categoryId: channel.id });
       } else if (setting === 'staff-role') {
         if (!role) return interaction.reply({ embeds: [errorEmbed('Choose a staff role.')], ephemeral: true });
-        updateTicketConfig(interaction.guild.id, { staffRoleId: role.id });
+        await updateTicketConfig(interaction.guild.id, { staffRoleId: role.id });
       } else if (setting === 'logs') {
         if (!channel || ![DiscordChannelType.GuildText, DiscordChannelType.GuildAnnouncement].includes(channel.type)) return interaction.reply({ embeds: [errorEmbed('Choose a text channel for ticket logs.')], ephemeral: true });
-        updateTicketConfig(interaction.guild.id, { logChannelId: channel.id });
+        await updateTicketConfig(interaction.guild.id, { logChannelId: channel.id });
       } else if (setting === 'naming') {
         if (!value || !value.includes('{username}') && !value.includes('{id}')) return interaction.reply({ embeds: [errorEmbed('Naming must include `{username}` or `{id}`.')], ephemeral: true });
-        updateTicketConfig(interaction.guild.id, { namingPattern: value });
+        await updateTicketConfig(interaction.guild.id, { namingPattern: value });
       } else if (setting === 'limit') {
         const limit = Number(value);
         if (!Number.isInteger(limit) || limit < 1 || limit > 10) return interaction.reply({ embeds: [errorEmbed('The user limit must be a whole number from 1 to 10.')], ephemeral: true });
-        updateTicketConfig(interaction.guild.id, { userLimit: limit });
+        await updateTicketConfig(interaction.guild.id, { userLimit: limit });
       } else if (setting === 'topics') {
         const topics = (value ?? '').split(',').map((topic) => topic.trim()).filter(Boolean).slice(0, 25);
         if (!topics.length) return interaction.reply({ embeds: [errorEmbed('Add at least one topic, separated by commas.')], ephemeral: true });
-        updateTicketConfig(interaction.guild.id, { topics });
+        await updateTicketConfig(interaction.guild.id, { topics });
       }
-      const settings = getTicketConfig(interaction.guild.id);
+      const settings = await getTicketConfig(interaction.guild.id);
       await interaction.reply({ embeds: [createEmbed('Ticket configuration updated', `Category: ${settings.categoryId ? `<#${settings.categoryId}>` : 'not set'}\nStaff role: ${settings.staffRoleId ? `<@&${settings.staffRoleId}>` : 'not set'}\nLogs: ${settings.logChannelId ? `<#${settings.logChannelId}>` : 'not set'}\nNaming: "${settings.namingPattern}"\nOpen-ticket limit: **${settings.userLimit}**\nTopics: ${settings.topics.join(', ')}`, colors.success)], ephemeral: true });
     } else if (subcommand === 'panel') {
       if (!(await requireStaff(interaction))) return;
-      const settings = getTicketConfig(interaction.guild.id);
+      const settings = await getTicketConfig(interaction.guild.id);
       await interaction.reply({ embeds: [createEmbed('Need help?', 'Choose a topic below and Sentinel will create a private support ticket.')], components: ticketPanel(settings.topics) });
     } else if (subcommand === 'create') {
       await createTicketChannel(interaction);
     } else if (subcommand === 'list') {
       if (!(await requireStaff(interaction))) return;
-      const tickets = getGuildTickets(interaction.guild.id, 'OPEN');
+      const tickets = await getGuildTickets(interaction.guild.id, 'OPEN');
       const description = tickets.length ? tickets.map((ticket) => `**#${ticket.id}** <#${ticket.channelId}> <@${ticket.userId}>${ticket.claimedBy ? ` | claimed by <@${ticket.claimedBy}>` : ''}`).join('\n') : 'No active tickets.';
       await interaction.reply({ embeds: [createEmbed('Active tickets', description)], ephemeral: true });
     } else {
-      if (!isTicketChannel(interaction)) return interaction.reply({ content: 'This command can only be used inside a ticket channel.', ephemeral: true });
-      const ticket = getTicketByChannel(interaction.channel!.id)!;
+      if (!(await isTicketChannel(interaction))) return interaction.reply({ content: 'This command can only be used inside a ticket channel.', ephemeral: true });
+      const ticket = (await getTicketByChannel(interaction.channel!.id))!;
       const channel = interaction.channel as TextChannel;
       if (subcommand === 'close') {
-        updateTicket(ticket.id, { status: 'CLOSED', closedAt: new Date().toISOString() });
+        await updateTicket(ticket.id, { status: 'CLOSED', closedAt: new Date().toISOString() });
         await interaction.reply({ embeds: [createEmbed('Ticket closed', 'This channel will be deleted in 10 seconds.', colors.warning)] });
         setTimeout(() => channel.delete('Ticket closed'), 10_000);
       } else if (subcommand === 'reopen') {
-        updateTicket(ticket.id, { status: 'OPEN', closedAt: undefined });
+        await updateTicket(ticket.id, { status: 'OPEN', closedAt: undefined });
         await interaction.reply({ embeds: [createEmbed('Ticket reopened', 'This ticket is active again.', colors.success)] });
       } else if (subcommand === 'delete') {
         if (!(await requireStaff(interaction))) return;
@@ -224,7 +224,7 @@ const ticketCommand: Command = {
         await interaction.reply({ embeds: [createEmbed('Ticket renamed', `Channel renamed to **${name}**.`, colors.success)] });
       } else if (subcommand === 'claim' || subcommand === 'unclaim') {
         if (!(await requireStaff(interaction))) return;
-        updateTicket(ticket.id, subcommand === 'claim' ? { claimedBy: interaction.user.id } : { claimedBy: undefined });
+        await updateTicket(ticket.id, subcommand === 'claim' ? { claimedBy: interaction.user.id } : { claimedBy: undefined });
         await interaction.reply({ embeds: [createEmbed(subcommand === 'claim' ? 'Ticket claimed' : 'Ticket unclaimed', `${interaction.user} updated the assignment.`, colors.success)] });
       }
     }

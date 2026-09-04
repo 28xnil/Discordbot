@@ -12,11 +12,11 @@ export const logsCommand = {
             return;
         if (interaction.options.getSubcommand() === 'channel') {
             const channel = interaction.options.getChannel('channel', true);
-            setLogChannel(interaction.guild.id, channel.id);
+            await setLogChannel(interaction.guild.id, channel.id);
             await interaction.reply({ embeds: [createEmbed('Logging enabled', `Server events will be logged in ${channel}.`, colors.success)], ephemeral: true });
             return;
         }
-        const channelId = getLogChannel(interaction.guild.id);
+        const channelId = await getLogChannel(interaction.guild.id);
         await interaction.reply({ embeds: [channelId ? createEmbed('Logging status', `Events are logged in <#${channelId}>.`) : errorEmbed('No server log channel is configured.')], ephemeral: true });
     }
 };
