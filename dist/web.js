@@ -5,71 +5,43 @@ import { commands } from './command-loader.js';
 import { deleteCustomCommand, getCustomCommands, getDashboardData, saveCustomCommand } from './database.js';
 import { syncCommands } from './sync-commands.js';
 const pendingStates = new Set();
-const panelSections = {
-    moderation: { title: 'Moderation', description: 'Review and configure the tools used to keep your server safe.', commands: ['/warn', '/warnings', '/timeout', '/kick', '/ban', '/cases', '/automod'] },
-    tickets: { title: 'Tickets', description: 'Manage ticket categories, staff access, logs, and support workflows.', commands: ['/ticket panel', '/ticket config', '/ticket list', '/ticket claim', '/ticket close'] },
-    management: { title: 'Management', description: 'Configure server settings, roles, logging, and permissions.', commands: ['/config view', '/config reset', '/role create', '/role add', '/logs channel'] },
-    utility: { title: 'Utility', description: 'Use information, polls, reminders, and everyday server tools.', commands: ['/serverinfo', '/userinfo', '/avatar', '/poll', '/remind', '/stats'] },
-    developer: { title: 'Developer', description: 'Manage custom commands and inspect the hosted bot service.', commands: ['Custom slash command editor', 'Command synchronization', 'Database-backed settings', 'Service status'] }
-};
-function panelPage(section = 'developer') {
-    const current = panelSections[section] ?? panelSections.developer;
-    const links = Object.entries(panelSections).map(([key, value]) => `<a class="nav-link${key === section ? ' active' : ''}" href="/panel/${key}">${value.title}</a>`).join('');
-    const commands = current.commands.map((command) => `<li>${command}</li>`).join('');
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sentinel ${current.title}</title><style>
-  :root{color-scheme:dark;--bg:#0b0d12;--panel:#151923;--line:#293142;--text:#f3f5f7;--muted:#9aa6b2;--accent:#7c8cff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% -10%,#29306b 0,#0b0d12 42%);color:var(--text);font:15px/1.5 system-ui,sans-serif}.layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}.side{border-right:1px solid var(--line);padding:28px 18px;background:#0d1017}.brand{font-weight:800;font-size:20px;margin-bottom:30px}.nav-link{display:block;color:var(--muted);text-decoration:none;padding:10px 12px;border-radius:6px;margin:3px 0}.nav-link:hover,.active{background:#202742;color:#fff}.content{max-width:900px;padding:58px clamp(24px,6vw,80px)}.eyebrow{color:#aeb7ff;text-transform:uppercase;letter-spacing:.16em;font-size:11px;font-weight:700}h1{font-size:clamp(38px,6vw,68px);line-height:.95;margin:15px 0}.lede{color:var(--muted);font-size:18px;max-width:650px}.card{background:#151923dd;border:1px solid var(--line);border-radius:10px;padding:24px;margin-top:28px}li{padding:8px 0;color:#d8dce5}.back{color:#aeb7ff;text-decoration:none}@media(max-width:700px){.layout{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--line)}.nav{display:flex;overflow:auto}.nav-link{white-space:nowrap;margin-right:5px}.content{padding:35px 22px}}
-  </style></head><body><div class="layout"><aside class="side"><div class="brand">Sentinel Control</div><nav class="nav"><a class="nav-link" href="/panel">Overview</a>${links}</nav><a class="nav-link" href="/auth/logout">Sign out</a></aside><main class="content"><a class="back" href="/panel">← Overview</a><div class="eyebrow">Owner panel</div><h1>${current.title}</h1><p class="lede">${current.description}</p><section class="card"><h2>Available controls</h2><ul>${commands}</ul>${section === 'developer' ? '<p><a class="back" href="/">Open the live custom-command editor →</a></p>' : ''}</section><section class="card"><h2>Live service</h2><p id="status">Loading status...</p></section></main></div><script>fetch('/api/status').then(r=>r.json()).then(s=>document.querySelector('#status').textContent='Bot '+(s.online?'online':'offline')+' · '+s.guilds+' server(s) · '+s.openTickets+' open ticket(s)').catch(()=>document.querySelector('#status').textContent='Status unavailable');</script></body></html>`;
-}
+const navigation = [
+    ['overview', 'Overview', '◉'],
+    ['configuration', 'Configuration', '⚙'],
+    ['moderation', 'Moderation', '🛡'],
+    ['tickets', 'Tickets', '🎫'],
+    ['server', 'Server', '👋'],
+    ['analytics', 'Analytics', '📊'],
+    ['commands', 'Commands', '📜'],
+    ['audit', 'Audit Log', '🔑']
+];
 const page = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sentinel Control</title><style>
-:root{color-scheme:dark;--bg:#0b0d12;--panel:#151923;--line:#293142;--text:#f3f5f7;--muted:#9aa6b2;--accent:#7c8cff;--good:#57d18c;--bad:#ff7070}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% -10%,#29306b 0,#0b0d12 42%);color:var(--text);font:15px/1.5 system-ui,sans-serif}main{max-width:1120px;margin:auto;padding:44px 22px}.top{display:flex;justify-content:space-between;align-items:center;gap:20px}.eyebrow{color:#aeb7ff;text-transform:uppercase;letter-spacing:.16em;font-size:11px;font-weight:700}h1{font-size:clamp(38px,7vw,72px);line-height:.95;margin:14px 0}.lede{max-width:650px;color:var(--muted);font-size:18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:30px 0}.card,form{background:#151923dd;border:1px solid var(--line);border-radius:10px;padding:20px}.label{color:var(--muted);font-size:12px}.value{font-size:28px;font-weight:700;margin-top:5px}.status{color:var(--good)}section{margin-top:24px}h2{font-size:20px}input,textarea{width:100%;background:#0d1017;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:10px;margin:6px 0 12px;font:inherit}textarea{min-height:90px;resize:vertical}button,.button{border:0;border-radius:6px;padding:10px 14px;background:var(--accent);color:white;font-weight:700;cursor:pointer;text-decoration:none}.muted{color:var(--muted)}.command{display:flex;justify-content:space-between;gap:18px;border-bottom:1px solid var(--line);padding:12px 0}.danger{background:#9f3f4b}#app[hidden]{display:none}.login{display:inline-block;margin-top:20px}</style></head><body><main><div id="login"><div class="eyebrow">Sentinel control</div><h1>Private operations panel.</h1><p class="lede">Sign in with Discord. Only the configured bot owner can access developer controls.</p><a class="button login" href="/auth/discord">Continue with Discord</a></div><div id="app" hidden><div class="top"><div><div class="eyebrow">Sentinel control</div><h1>Developer console.</h1><p class="lede">Manage custom commands and inspect the live bot service.</p></div><a class="button" href="/auth/logout">Sign out</a></div><section class="grid" id="stats"></section><section><h2>Custom commands</h2><form id="command-form"><label>Name<input name="name" pattern="[a-z0-9-]{1,32}" placeholder="rules" required></label><label>Description<input name="description" maxlength="100" placeholder="Show server rules" required></label><label>Response<textarea name="response" maxlength="2000" placeholder="Please read #rules." required></textarea></label><button>Add or update command</button><p class="muted">Commands are synced to Discord immediately after saving.</p></form><div id="commands"></div></section></div></main><script>
-const json=async(url,options)=>{const r=await fetch(url,options);if(r.status===401){location.reload();throw Error('login')}const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data};
-async function load(){const me=await json('/api/me');if(!me.authenticated)return;document.querySelector('#login').hidden=true;document.querySelector('#app').hidden=false;const [status,commands]=await Promise.all([json('/api/status'),json('/api/custom-commands')]);document.querySelector('#stats').innerHTML=[['Status',status.online?'Online':'Offline'],['Servers',status.guilds],['Built-in commands',status.commands],['Open tickets',status.openTickets],['Total tickets',status.totalTickets],['Uptime',status.uptime]].map(x=>'<div class="card"><div class="label">'+x[0]+'</div><div class="value">'+x[1]+'</div></div>').join('');render(commands)}
-function render(commands){document.querySelector('#commands').innerHTML=commands.length?commands.map(c=>'<div class="command"><span><b>/'+c.name+'</b><br><span class="muted">'+c.description+'</span></span><button class="danger" onclick="removeCommand(\''+c.name+'\')">Delete</button></div>').join(''):'<p class="muted">No custom commands yet.</p>'}
-async function removeCommand(name){await json('/api/custom-commands/'+name,{method:'DELETE'});load()}
-document.querySelector('#command-form').addEventListener('submit',async event=>{event.preventDefault();const body=Object.fromEntries(new FormData(event.target));await json('/api/custom-commands',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});event.target.reset();load()});load().catch(()=>{});
+:root{color-scheme:dark;--bg:#0a0d12;--panel:#111722;--panel2:#171e2b;--line:#273244;--text:#f3f5f7;--muted:#93a0b2;--accent:#7382ff;--good:#54d38b;--warn:#f0c75e;--danger:#ed6973}*{box-sizing:border-box}body{margin:0;background:linear-gradient(140deg,#11172b 0,#0a0d12 40%,#10151e 100%);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,sans-serif}.shell{display:flex;min-height:100vh}.sidebar{width:252px;flex:none;padding:24px 15px;background:#0c1119ee;border-right:1px solid var(--line);position:sticky;top:0;height:100vh}.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;padding:0 10px 25px}.brand-mark{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center}.group{margin:20px 8px 7px;color:#657287;text-transform:uppercase;letter-spacing:.13em;font-size:10px;font-weight:800}.nav-link{display:flex;align-items:center;gap:11px;color:var(--muted);text-decoration:none;padding:9px 11px;border-radius:7px;margin:2px 0}.nav-link:hover,.nav-link.active{background:#202a43;color:#fff}.nav-icon{width:20px;text-align:center}.main{width:min(1180px,100%);padding:38px clamp(20px,5vw,65px)}.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}.eyebrow{color:#9faaff;text-transform:uppercase;letter-spacing:.16em;font-size:10px;font-weight:800}.user{color:var(--muted);font-size:13px}.logout{color:var(--muted);text-decoration:none;margin-left:14px}.hero h1{font-size:clamp(34px,5vw,58px);line-height:1;margin:10px 0}.hero p{color:var(--muted);font-size:17px;max-width:700px}.server-name{color:#aeb7ff}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:30px 0}.card,.panel{background:#141b28d9;border:1px solid var(--line);border-radius:9px;padding:19px}.label{font-size:12px;color:var(--muted)}.value{font-size:27px;font-weight:750;margin-top:4px}.section-title{display:flex;justify-content:space-between;align-items:center;margin:31px 0 12px}.section-title h2{font-size:19px;margin:0}.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}.check{color:var(--good);margin-right:8px}.activity{display:grid;gap:10px}.activity-row{display:flex;gap:12px;align-items:flex-start;color:var(--muted)}.dot{color:var(--accent);font-size:20px;line-height:18px}.pill{display:inline-block;padding:4px 8px;border-radius:99px;color:var(--good);background:#173525;font-size:11px;font-weight:700}.muted{color:var(--muted)}.subnav{display:flex;gap:7px;flex-wrap:wrap;margin:18px 0}.subnav a,.button{display:inline-block;text-decoration:none;border:1px solid var(--line);background:var(--panel2);border-radius:6px;color:var(--text);padding:8px 11px}.button.primary{background:var(--accent);border-color:var(--accent)}form{max-width:700px}label{display:block;color:var(--muted);margin:13px 0 5px}input,textarea,select{width:100%;background:#0c1119;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:10px;font:inherit}textarea{min-height:100px;resize:vertical}button{border:0;border-radius:6px;padding:10px 14px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;margin-top:14px}.command-row,.table-row{display:flex;justify-content:space-between;gap:20px;padding:13px 0;border-bottom:1px solid var(--line);align-items:center}.danger{background:#8f3e49}.login-page{max-width:650px;margin:15vh auto;padding:25px}.hidden{display:none}@media(max-width:780px){.sidebar{width:205px}.main{padding:27px 18px}.topbar{display:block}.user{margin-top:15px}}
+</style></head><body><div class="shell"><aside class="sidebar"><div class="brand"><span class="brand-mark">S</span> Sentinel</div><nav id="nav"></nav><div class="group">Developer</div><a class="nav-link" href="/panel/commands"><span class="nav-icon">✦</span>Custom Commands</a><a class="nav-link" href="/auth/logout"><span class="nav-icon">↪</span>Sign out</a></aside><main class="main"><div class="topbar"><div class="hero"><div class="eyebrow">Owner control panel</div><h1 id="title">Overview</h1><p id="description">Welcome back. Here is the current state of your Discord operation.</p></div><div class="user" id="user"></div></div><div id="content"></div></main></div><script>
+const nav=${JSON.stringify(navigation)};const path=location.pathname.split('/')[2]||'overview';const $=id=>document.getElementById(id);nav.forEach(([key,label,icon])=>{const a=document.createElement('a');a.className='nav-link '+(path===key?'active':'');a.href='/panel/'+key;a.innerHTML='<span class="nav-icon">'+icon+'</span>'+label;$('nav').append(a)});const api=async(url,opts)=>{const r=await fetch(url,opts);if(r.status===401){location='/';throw Error('login')}const d=await r.json();if(!r.ok)throw Error(d.error||'Request failed');return d};
+const format=async()=>{const [me,status]=await Promise.all([api('/api/me'),api('/api/status')]);$('user').innerHTML='Signed in as <b>'+me.username+'</b><a class="logout" href="/auth/logout">Sign out</a>';$('title').textContent=path==='overview'?'Overview':nav.find(x=>x[0]===path)?.[1]||'Developer';render(path,status)};
+function render(section,s){const common='<div class="cards"><div class="card"><div class="label">Bot status</div><div class="value"><span class="pill">● '+(s.online?'Operational':'Offline')+'</span></div></div><div class="card"><div class="label">Servers</div><div class="value">'+s.guilds+'</div></div><div class="card"><div class="label">Commands</div><div class="value">'+s.commands+'</div></div><div class="card"><div class="label">Open tickets</div><div class="value">'+s.openTickets+'</div></div><div class="card"><div class="label">Total tickets</div><div class="value">'+s.totalTickets+'</div></div></div>';if(section==='overview'){$('content').innerHTML=common+'<div class="section-title"><h2>Modules</h2></div><div class="grid2"><div class="panel"><p><span class="check">✓</span>Moderation</p><p><span class="check">✓</span>Tickets</p><p><span class="check">✓</span>Logging</p><p><span class="check">✓</span>AutoMod</p><p><span class="check">✓</span>Utility</p></div><div class="panel"><div class="section-title"><h2>Recent activity</h2></div><div class="activity"><div class="activity-row"><span class="dot">●</span>Dashboard ready<br><small>Live bot status connected</small></div><div class="activity-row"><span class="dot">●</span>PostgreSQL connected<br><small>Settings are persistent</small></div></div></div></div>'}else if(section==='commands')loadCommands();else{$('description').textContent=sectionDescription(section);$('content').innerHTML=common+'<div class="panel"><div class="section-title"><h2>'+nav.find(x=>x[0]===section)?.[1]+'</h2><span class="pill">Connected</span></div><p class="muted">'+sectionDescription(section)+'</p><div class="subnav">'+sectionLinks(section)+'</div></div>'}}
+function sectionDescription(x){return {configuration:'General settings, command permissions, language, timezone, and server-level preferences.',moderation:'AutoMod, warnings, punishment escalation, and moderation logs.',tickets:'Ticket settings, categories, staff access, and ticket panels.',server:'Welcome messages, goodbye messages, and automatic roles.',analytics:'Server activity, command usage, tickets, warnings, and member trends.',audit:'A record of dashboard configuration changes and developer actions.'}[x]||'Manage Sentinel from the Discord control panel.'}
+function sectionLinks(x){const links={configuration:['General settings','Command permissions','Prefix options'],moderation:['AutoMod settings','Warning system','Log channels'],tickets:['Ticket settings','Categories','Panels'],server:['Welcome','Goodbye','Auto roles'],analytics:['24 hours','7 days','30 days'],audit:['Configuration changes','Command sync history']};return (links[x]||[]).map(x=>'<a href="#" class="subnav a">'+x+'</a>').join('')}
+async function loadCommands(){const list=await api('/api/custom-commands');$('description').textContent='Create and manage custom slash commands that sync directly to Discord.';$('content').innerHTML='<div class="grid2"><form id="command-form"><h2>Add or update command</h2><label>Name</label><input name="name" pattern="[a-z0-9-]{1,32}" placeholder="rules" required><label>Description</label><input name="description" maxlength="100" placeholder="Show server rules" required><label>Response</label><textarea name="response" maxlength="2000" placeholder="Please read #rules." required></textarea><button>Save and sync</button></form><div class="panel"><h2>Custom commands</h2><div id="command-list">\${list.length?list.map(c=>'<div class="command-row"><span><b>/'+c.name+'</b><br><small class="muted">'+c.description+'</small></span><button class="danger" onclick="removeCommand(\''+c.name+'\')">Delete</button></div>').join(''):'<p class="muted">No custom commands yet.</p>'}</div></div></div>';$('command-form').addEventListener('submit',async e=>{e.preventDefault();await api('/api/custom-commands',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.target)))});loadCommands()})}async function removeCommand(name){await api('/api/custom-commands/'+name,{method:'DELETE'});loadCommands()}format().catch(e=>{$('content').innerHTML='<div class="panel">Unable to load panel data.</div>'});
 </script></body></html>`;
-function cookie(request, name) {
-    return request.headers.cookie?.split(';').map((item) => item.trim()).find((item) => item.startsWith(`${name}=`))?.slice(name.length + 1);
+function cookie(request, name) { return request.headers.cookie?.split(';').map((item) => item.trim()).find((item) => item.startsWith(`${name}=`))?.slice(name.length + 1); }
+function sign(value) { return createHmac('sha256', config.sessionSecret).update(value).digest('base64url'); }
+function sessionCookie(session) { const value = Buffer.from(JSON.stringify(session)).toString('base64url'); return `${value}.${sign(value)}`; }
+function readSession(request) { const raw = cookie(request, 'sentinel_session'); if (!raw)
+    return; const [value, signature] = raw.split('.'); if (!value || !signature)
+    return; const expected = sign(value); if (signature.length !== expected.length || !timingSafeEqual(Buffer.from(signature), Buffer.from(expected)))
+    return; try {
+    const session = JSON.parse(Buffer.from(value, 'base64url').toString());
+    return session.exp > Date.now() && session.id === config.ownerId ? session : undefined;
 }
-function sign(value) {
-    return createHmac('sha256', config.sessionSecret).update(value).digest('base64url');
-}
-function sessionCookie(session) {
-    const value = Buffer.from(JSON.stringify(session)).toString('base64url');
-    return `${value}.${sign(value)}`;
-}
-function readSession(request) {
-    const raw = cookie(request, 'sentinel_session');
-    if (!raw)
-        return undefined;
-    const [value, signature] = raw.split('.');
-    if (!value || !signature)
-        return undefined;
-    const expected = sign(value);
-    if (signature.length !== expected.length || !timingSafeEqual(Buffer.from(signature), Buffer.from(expected)))
-        return undefined;
-    try {
-        const session = JSON.parse(Buffer.from(value, 'base64url').toString());
-        return session.exp > Date.now() && session.id === config.ownerId ? session : undefined;
-    }
-    catch {
-        return undefined;
-    }
-}
-function sendJson(response, body, status = 200) {
-    response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    response.end(JSON.stringify(body));
-}
-async function body(request) {
-    let data = '';
-    for await (const chunk of request)
-        data += chunk;
-    return JSON.parse(data || '{}');
-}
-function redirect(response, location, headers = {}) {
-    response.writeHead(302, { location, ...headers });
-    response.end();
-}
+catch {
+    return;
+} }
+function sendJson(response, body, status = 200) { response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); response.end(JSON.stringify(body)); }
+async function body(request) { let data = ''; for await (const chunk of request)
+    data += chunk; return JSON.parse(data || '{}'); }
+function redirect(response, location, headers = {}) { response.writeHead(302, { location, ...headers }); response.end(); }
 export function startWebServer(client) {
     const server = createServer(async (request, response) => {
         const url = new URL(request.url ?? '/', config.dashboardUrl);
@@ -85,8 +57,7 @@ export function startWebServer(client) {
                 oauth.searchParams.set('redirect_uri', `${config.dashboardUrl}/auth/callback`);
                 oauth.searchParams.set('scope', 'identify');
                 oauth.searchParams.set('state', state);
-                redirect(response, oauth.toString());
-                return;
+                return redirect(response, oauth.toString());
             }
             if (url.pathname === '/auth/callback') {
                 if (!config.oauthClientSecret || !url.searchParams.get('code') || !pendingStates.delete(url.searchParams.get('state') ?? ''))
@@ -99,18 +70,15 @@ export function startWebServer(client) {
                 const user = await userResponse.json();
                 if (user.id !== config.ownerId)
                     return sendJson(response, { error: 'This dashboard is restricted to the bot owner.' }, 403);
-                const session = { id: user.id, username: user.username, exp: Date.now() + 7 * 86_400_000 };
-                redirect(response, '/panel', { 'set-cookie': `sentinel_session=${sessionCookie(session)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800` });
-                return;
+                const session = { id: user.id, username: user.username, exp: Date.now() + 30 * 86_400_000 };
+                const secure = config.dashboardUrl.startsWith('https://') ? ' Secure;' : '';
+                return redirect(response, '/panel', { 'set-cookie': `sentinel_session=${sessionCookie(session)}; HttpOnly;${secure} SameSite=Lax; Path=/; Max-Age=2592000` });
             }
-            if (url.pathname === '/auth/logout') {
-                redirect(response, '/', { 'set-cookie': 'sentinel_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0' });
-                return;
-            }
+            if (url.pathname === '/auth/logout')
+                return redirect(response, '/', { 'set-cookie': 'sentinel_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0' });
             if (url.pathname === '/test') {
                 response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-                response.end('<!doctype html><html><head><title>Sentinel test</title></head><body><h1>Wow, you entered a secret thing.</h1><p>The Sentinel website is responding.</p></body></html>');
-                return;
+                return response.end('<h1>Wow, you entered a secret thing.</h1>');
             }
             const session = readSession(request);
             if (url.pathname === '/api/me')
@@ -118,17 +86,13 @@ export function startWebServer(client) {
             if (url.pathname === '/panel' || url.pathname.startsWith('/panel/')) {
                 if (!session)
                     return redirect(response, '/');
-                const section = url.pathname.split('/')[2] || 'developer';
-                if (!panelSections[section] && section !== 'developer')
-                    return sendJson(response, { error: 'Panel section not found' }, 404);
                 response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
-                response.end(panelPage(section));
-                return;
+                return response.end(page);
             }
             if (url.pathname.startsWith('/api/')) {
                 if (!session)
                     return sendJson(response, { error: 'Unauthorized' }, 401);
-                if (url.pathname === '/api/status' && request.method === 'GET') {
+                if (url.pathname === '/api/status') {
                     const data = await getDashboardData();
                     return sendJson(response, { online: client.isReady(), guilds: client.guilds.cache.size, commands: commands.length, openTickets: data.openTickets, totalTickets: data.totalTickets, uptime: formatUptime(client.uptime ?? 0) });
                 }
@@ -151,8 +115,7 @@ export function startWebServer(client) {
             }
             if (url.pathname === '/' || url.pathname === '/index.html') {
                 response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-                response.end(page);
-                return;
+                return response.end('<meta http-equiv="refresh" content="0;url=/panel">');
             }
             sendJson(response, { error: 'Not found' }, 404);
         }
@@ -163,4 +126,4 @@ export function startWebServer(client) {
     });
     server.listen(config.port, '0.0.0.0', () => console.log(`Sentinel dashboard listening on port ${config.port}`));
 }
-function formatUptime(milliseconds) { const totalMinutes = Math.floor(milliseconds / 60_000); const days = Math.floor(totalMinutes / 1_440); const hours = Math.floor((totalMinutes % 1_440) / 60); const minutes = totalMinutes % 60; return `${days}d ${hours}h ${minutes}m`; }
+function formatUptime(milliseconds) { const totalMinutes = Math.floor(milliseconds / 60000); const days = Math.floor(totalMinutes / 1440); const hours = Math.floor((totalMinutes % 1440) / 60); const minutes = totalMinutes % 60; return `${days}d ${hours}h ${minutes}m`; }
