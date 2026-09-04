@@ -4,9 +4,12 @@
   "private": true,
   "description": "All-in-one Discord moderation, support, management, and utility bot.",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "node ./node_modules/typescript/bin/tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "sync": "tsx src/deploy-commands.ts"
   },

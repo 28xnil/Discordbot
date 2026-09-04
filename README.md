@@ -53,9 +53,18 @@ Set `DISCORD_GUILD_ID` during development for fast command updates. Without it, 
 
 1. Create a Railway project and add a PostgreSQL service.
 2. Deploy this repository as a Railway service.
-3. Add `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, and optionally `DISCORD_GUILD_ID` as service variables.
-4. Reference the PostgreSQL service so Railway provides `DATABASE_URL` to the bot service.
-5. Deploy. The bot runs `npm run build`, creates its tables on startup, and starts with `npm start`.
+3. Open the bot service's **Variables** tab, choose **Raw Editor**, and paste this template with your own values:
+
+```dotenv
+DISCORD_TOKEN=your_rotated_bot_token
+DISCORD_CLIENT_ID=your_application_client_id
+DISCORD_GUILD_ID=your_development_guild_id
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+```
+
+If your PostgreSQL service has a different name, replace `Postgres` with that service name. You can also paste the full PostgreSQL connection URL directly as `DATABASE_URL`.
+
+4. Deploy. The bot runs `npm run build`, creates its tables on startup, and starts with `npm start`.
 
 Run `npm run sync` locally with the production bot credentials when slash commands change. Do not use `npm run dev` as the Railway start command.
 
