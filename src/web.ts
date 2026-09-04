@@ -10,6 +10,23 @@ const pendingStates = new Set<string>();
 
 type Session = { id: string; username: string; exp: number };
 
+const panelSections: Record<string, { title: string; description: string; commands: string[] }> = {
+  moderation: { title: 'Moderation', description: 'Review and configure the tools used to keep your server safe.', commands: ['/warn', '/warnings', '/timeout', '/kick', '/ban', '/cases', '/automod'] },
+  tickets: { title: 'Tickets', description: 'Manage ticket categories, staff access, logs, and support workflows.', commands: ['/ticket panel', '/ticket config', '/ticket list', '/ticket claim', '/ticket close'] },
+  management: { title: 'Management', description: 'Configure server settings, roles, logging, and permissions.', commands: ['/config view', '/config reset', '/role create', '/role add', '/logs channel'] },
+  utility: { title: 'Utility', description: 'Use information, polls, reminders, and everyday server tools.', commands: ['/serverinfo', '/userinfo', '/avatar', '/poll', '/remind', '/stats'] },
+  developer: { title: 'Developer', description: 'Manage custom commands and inspect the hosted bot service.', commands: ['Custom slash command editor', 'Command synchronization', 'Database-backed settings', 'Service status'] }
+};
+
+function panelPage(section = 'developer'): string {
+  const current = panelSections[section] ?? panelSections.developer;
+  const links = Object.entries(panelSections).map(([key, value]) => `<a class="nav-link${key === section ? ' active' : ''}" href="/panel/${key}">${value.title}</a>`).join('');
+  const commands = current.commands.map((command) => `<li>${command}</li>`).join('');
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sentinel ${current.title}</title><style>
+  :root{color-scheme:dark;--bg:#0b0d12;--panel:#151923;--line:#293142;--text:#f3f5f7;--muted:#9aa6b2;--accent:#7c8cff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% -10%,#29306b 0,#0b0d12 42%);color:var(--text);font:15px/1.5 system-ui,sans-serif}.layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}.side{border-right:1px solid var(--line);padding:28px 18px;background:#0d1017}.brand{font-weight:800;font-size:20px;margin-bottom:30px}.nav-link{display:block;color:var(--muted);text-decoration:none;padding:10px 12px;border-radius:6px;margin:3px 0}.nav-link:hover,.active{background:#202742;color:#fff}.content{max-width:900px;padding:58px clamp(24px,6vw,80px)}.eyebrow{color:#aeb7ff;text-transform:uppercase;letter-spacing:.16em;font-size:11px;font-weight:700}h1{font-size:clamp(38px,6vw,68px);line-height:.95;margin:15px 0}.lede{color:var(--muted);font-size:18px;max-width:650px}.card{background:#151923dd;border:1px solid var(--line);border-radius:10px;padding:24px;margin-top:28px}li{padding:8px 0;color:#d8dce5}.back{color:#aeb7ff;text-decoration:none}@media(max-width:700px){.layout{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--line)}.nav{display:flex;overflow:auto}.nav-link{white-space:nowrap;margin-right:5px}.content{padding:35px 22px}}
+  </style></head><body><div class="layout"><aside class="side"><div class="brand">Sentinel Control</div><nav class="nav"><a class="nav-link" href="/panel">Overview</a>${links}</nav><a class="nav-link" href="/auth/logout">Sign out</a></aside><main class="content"><a class="back" href="/panel">← Overview</a><div class="eyebrow">Owner panel</div><h1>${current.title}</h1><p class="lede">${current.description}</p><section class="card"><h2>Available controls</h2><ul>${commands}</ul>${section === 'developer' ? '<p><a class="back" href="/">Open the live custom-command editor →</a></p>' : ''}</section><section class="card"><h2>Live service</h2><p id="status">Loading status...</p></section></main></div><script>fetch('/api/status').then(r=>r.json()).then(s=>document.querySelector('#status').textContent='Bot '+(s.online?'online':'offline')+' · '+s.guilds+' server(s) · '+s.openTickets+' open ticket(s)').catch(()=>document.querySelector('#status').textContent='Status unavailable');</script></body></html>`;
+}
+
 const page = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sentinel Control</title><style>
 :root{color-scheme:dark;--bg:#0b0d12;--panel:#151923;--line:#293142;--text:#f3f5f7;--muted:#9aa6b2;--accent:#7c8cff;--good:#57d18c;--bad:#ff7070}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% -10%,#29306b 0,#0b0d12 42%);color:var(--text);font:15px/1.5 system-ui,sans-serif}main{max-width:1120px;margin:auto;padding:44px 22px}.top{display:flex;justify-content:space-between;align-items:center;gap:20px}.eyebrow{color:#aeb7ff;text-transform:uppercase;letter-spacing:.16em;font-size:11px;font-weight:700}h1{font-size:clamp(38px,7vw,72px);line-height:.95;margin:14px 0}.lede{max-width:650px;color:var(--muted);font-size:18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:30px 0}.card,form{background:#151923dd;border:1px solid var(--line);border-radius:10px;padding:20px}.label{color:var(--muted);font-size:12px}.value{font-size:28px;font-weight:700;margin-top:5px}.status{color:var(--good)}section{margin-top:24px}h2{font-size:20px}input,textarea{width:100%;background:#0d1017;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:10px;margin:6px 0 12px;font:inherit}textarea{min-height:90px;resize:vertical}button,.button{border:0;border-radius:6px;padding:10px 14px;background:var(--accent);color:white;font-weight:700;cursor:pointer;text-decoration:none}.muted{color:var(--muted)}.command{display:flex;justify-content:space-between;gap:18px;border-bottom:1px solid var(--line);padding:12px 0}.danger{background:#9f3f4b}#app[hidden]{display:none}.login{display:inline-block;margin-top:20px}</style></head><body><main><div id="login"><div class="eyebrow">Sentinel control</div><h1>Private operations panel.</h1><p class="lede">Sign in with Discord. Only the configured bot owner can access developer controls.</p><a class="button login" href="/auth/discord">Continue with Discord</a></div><div id="app" hidden><div class="top"><div><div class="eyebrow">Sentinel control</div><h1>Developer console.</h1><p class="lede">Manage custom commands and inspect the live bot service.</p></div><a class="button" href="/auth/logout">Sign out</a></div><section class="grid" id="stats"></section><section><h2>Custom commands</h2><form id="command-form"><label>Name<input name="name" pattern="[a-z0-9-]{1,32}" placeholder="rules" required></label><label>Description<input name="description" maxlength="100" placeholder="Show server rules" required></label><label>Response<textarea name="response" maxlength="2000" placeholder="Please read #rules." required></textarea></label><button>Add or update command</button><p class="muted">Commands are synced to Discord immediately after saving.</p></form><div id="commands"></div></section></div></main><script>
 const json=async(url,options)=>{const r=await fetch(url,options);if(r.status===401){location.reload();throw Error('login')}const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data};
@@ -83,7 +100,7 @@ export function startWebServer(client: Client): void {
         const user = await userResponse.json() as { id: string; username: string };
         if (user.id !== config.ownerId) return sendJson(response, { error: 'This dashboard is restricted to the bot owner.' }, 403);
         const session = { id: user.id, username: user.username, exp: Date.now() + 7 * 86_400_000 };
-        redirect(response, '/', { 'set-cookie': `sentinel_session=${sessionCookie(session)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800` });
+        redirect(response, '/panel', { 'set-cookie': `sentinel_session=${sessionCookie(session)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800` });
         return;
       }
       if (url.pathname === '/auth/logout') {
@@ -97,6 +114,14 @@ export function startWebServer(client: Client): void {
       }
       const session = readSession(request);
       if (url.pathname === '/api/me') return sendJson(response, session ? { authenticated: true, username: session.username } : { authenticated: false });
+      if (url.pathname === '/panel' || url.pathname.startsWith('/panel/')) {
+        if (!session) return redirect(response, '/');
+        const section = url.pathname.split('/')[2] || 'developer';
+        if (!panelSections[section] && section !== 'developer') return sendJson(response, { error: 'Panel section not found' }, 404);
+        response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+        response.end(panelPage(section));
+        return;
+      }
       if (url.pathname.startsWith('/api/')) {
         if (!session) return sendJson(response, { error: 'Unauthorized' }, 401);
         if (url.pathname === '/api/status' && request.method === 'GET') {
