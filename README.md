@@ -99,6 +99,19 @@ The dashboard only accepts Discord user ID `1019208986165248020`. Custom command
 
 `npm start` automatically synchronizes slash commands before starting the bot. `npm run sync` builds the project and registers commands using compiled JavaScript, so it does not depend on the `tsx` executable shim. Do not use `npm run dev` as the Railway start command.
 
+### Local startup troubleshooting
+
+The PostgreSQL version does not use `DATABASE_PATH`. Your local `.env` must contain:
+
+```dotenv
+DATABASE_URL=postgresql://user:password@host:5432/database
+DISCORD_OAUTH_CLIENT_SECRET=your_discord_application_client_secret
+DASHBOARD_SESSION_SECRET=another-long-random-secret
+DASHBOARD_URL=http://localhost:9090
+```
+
+Variable names are case-sensitive. `client_Secret` and `DATABASE_PATH` are ignored. Never commit or share bot tokens, OAuth secrets, or database URLs; rotate any credential that has been exposed.
+
 ## Planned phases
 
 - Phase 2: ticket transcripts, configurable ticket messages, and ticket logs

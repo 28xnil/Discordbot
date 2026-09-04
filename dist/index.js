@@ -1,6 +1,6 @@
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { commandMap } from './command-loader.js';
-import { config } from './config.js';
+import { config, validateRuntimeConfig } from './config.js';
 import { ensureGuild, initializeDatabase } from './database.js';
 import { helpButtonIds, helpSectionEmbed } from './commands/utility/help.js';
 import { handleTicketButton } from './commands/tickets/index.js';
@@ -54,6 +54,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.reply(response);
     }
 });
+validateRuntimeConfig();
 await initializeDatabase();
 await client.login(config.token);
 startWebServer(client);
