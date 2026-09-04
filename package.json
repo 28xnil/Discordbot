@@ -8,10 +8,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "node ./node_modules/tsx/dist/cli.mjs watch src/index.ts",
     "build": "node ./node_modules/typescript/bin/tsc -p tsconfig.json",
     "start": "node dist/start.js",
-    "sync": "tsx src/deploy-commands.ts"
+    "sync": "npm run build && node dist/deploy-commands.js"
   },
   "dependencies": {
     "discord.js": "^14.16.3",

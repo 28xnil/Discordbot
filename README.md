@@ -73,7 +73,7 @@ If your PostgreSQL service has a different name, replace `Postgres` with that se
 
 4. Deploy. The bot runs `npm run build`, creates its tables on startup, and starts with `npm start`.
 
-`npm start` automatically synchronizes slash commands before starting the bot. `npm run sync` remains available for manual command registration. Do not use `npm run dev` as the Railway start command.
+`npm start` automatically synchronizes slash commands before starting the bot. `npm run sync` builds the project and registers commands using compiled JavaScript, so it does not depend on the `tsx` executable shim. Do not use `npm run dev` as the Railway start command.
 
 ## Planned phases
 
